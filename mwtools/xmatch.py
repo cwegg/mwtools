@@ -1,29 +1,29 @@
 import tempfile
 import warnings
 
-import astropy
 from astropy.table import Table
 from astroquery.gaia import Gaia
+import numpy as np
 
-
-def _get_column_from_keylist(table, keylist):
+def _get_column_from_keylist(df, keylist):
     for key in keylist:
-        if key in table.colnames:
-            return table[key]
-    raise ValueError("None of {} found in table".format(keylist))
+        if key in df.columns:
+            return df[key]
+    raise ValueError("None of {} found in DataFrame".format(keylist))
 
 
-def _make_coordinate_table(table):
-    ra_column = _get_column_from_keylist(table, ['ra', 'RA'])
-    dec_column = _get_column_from_keylist(table, ['dec', 'DEC', 'de', 'DE'])
+def _make_coordinate_table(df):
+    ra_column = _get_column_from_keylist(df, ['ra', 'RA'])
+    dec_column = _get_column_from_keylist(df, ['dec', 'DEC', 'de', 'DE'])
     coordinate_table = Table(data=[ra_column, dec_column], names=('RA', 'DEC'))
     return coordinate_table
 
 
-def Gaia_DR2_Xmatch(table, dist=1):
-    coordinate_table = _make_coordinate_table(table)
-    coordinate_table['xmatch_id'] = range(len(table))  # add a column to keep cross of cross matches on
-    table['xmatch_id'] = range(len(table))
+def Gaia_DR2_Xmatch(df, dist=1):
+    # We take and return pandas DataFrames but
+    coordinate_table = _make_coordinate_table(df)
+    xmatch_id = np.arange(len(df.index))
+    coordinate_table['xmatch_id'] = xmatch_id  # add a column to keep cross of cross matches on
     with tempfile.NamedTemporaryFile(delete=False, suffix='.xml', mode='w') as file_to_upload:
         coordinate_table.write(file_to_upload, format='votable')
 
@@ -35,7 +35,7 @@ def Gaia_DR2_Xmatch(table, dist=1):
         1 = CONTAINS(POINT('ICRS', mystars.ra, mystars.dec), CIRCLE('ICRS', gaia.ra, gaia.dec, {}))""".format(
         dist / 3600.)
 
-    # Gaia DR2 source table produces many votable warnings that aren't important it seems
+    # It seems Gaia DR2 source table produces many votable warnings that aren't important
     with warnings.catch_warnings():
         warnings.filterwarnings('ignore')
         job = Gaia.launch_job_async(query=cross_match_query, upload_resource=file_to_upload.name,
@@ -44,6 +44,10 @@ def Gaia_DR2_Xmatch(table, dist=1):
     xmatched_table.remove_columns(['ra', 'dec'])
     xmatched_table.rename_column('ra_2', 'ra_gaia')
     xmatched_table.rename_column('dec_2', 'dec_gaia')
-    joined_table = astropy.table.join(table, xmatched_table, join_type='left', keys='xmatch_id')
-    joined_table.remove_column('xmatch_id')
-    return joined_table
+    xmatched_df = xmatched_table.to_pandas()
+
+    # joined_table = astropy.table.join(table, xmatched_table, join_type='left', keys='xmatch_id')
+    # joined_table.remove_column('xmatch_id')
+    joined_df = df.merge(xmatched_df,how='left',left_on=xmatch_id,right_on='xmatch_id')
+    joined_df.drop(['xmatch_id'],1,inplace=True)
+    return joined_df
