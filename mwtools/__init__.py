@@ -1,2 +1,2 @@
 from .xmatch import Gaia_DR2_Xmatch
-from .query import QueryWSA
+from .query import query_wsa

@@ -8,14 +8,14 @@ import os
 import tempfile
 import pandas as pd
 
-
 from dotenv import load_dotenv, find_dotenv
+
 dotenv_path = find_dotenv()
 load_dotenv(dotenv_path)
 
 
-def QueryWSA(sql, database='UKIDSSDR10PLUS', filename=None):
-    USERNAME  = os.environ.get("WSAUSERNAME")
+def query_wsa(sql, database='UKIDSSDR10PLUS', filename=None, file_to_upload=None):
+    USERNAME = os.environ.get("WSAUSERNAME")
     PASSWORD = os.environ.get("WSAPASSWORD")
     COMMUNITY = os.environ.get("WSACOMMUNITY")
 
@@ -33,8 +33,14 @@ def QueryWSA(sql, database='UKIDSSDR10PLUS', filename=None):
     # Construct and post the request
     dd = {'formaction': 'freeform', 'sqlstmt': sql, 'emailAddress': '',
           'database': database, 'timeout': 1800,
-          'format': 'FITS', 'compress': 'GZIP', 'rows': 30}
-    response = requests.post('http://wsa.roe.ac.uk:8080/wsa/WSASQL', data=dd)
+          'format': 'FITS', 'compress': 'GZIP', 'rows': 30, 'iFmt': 'VOTable'}
+
+    if file_to_upload is not None:
+        files = {'uploadSQLFile': (file_to_upload, open(file_to_upload, 'rb'))}
+    else:
+        files = None
+
+    response = requests.post('http://wsa.roe.ac.uk:8080/wsa/WSASQL', data=dd, files=files)
     res = response.text
     # Find where our output file is
     try:
@@ -56,4 +62,3 @@ def QueryWSA(sql, database='UKIDSSDR10PLUS', filename=None):
 
     hdulist = fits.open(f.name)
     return pd.DataFrame(hdulist[1].data)
-
