@@ -8,4 +8,5 @@ setup(name='mwtools',
       author_email='chriswegg+mwtools@gmail.com',
       url='https://gitlab.com/chriswegg/mwtools',
       packages=find_packages(),
+      install_requires=['python-dotenv','astropy','astroquery']
      )
