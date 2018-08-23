@@ -4,6 +4,7 @@ import astropy.units as u
 
 
 def add_gaia_galactic_pms(df, errors=True):
+    old_settings = np.seterr(invalid='ignore')
     mul, mub = bovy_coords.pmrapmdec_to_pmllpmbb(np.array(df['pmra']),
                                                  np.array(df['pmdec']),
                                                  np.array(df['ra_gaia']),
@@ -12,6 +13,7 @@ def add_gaia_galactic_pms(df, errors=True):
     df['pmb'] = mub
     if errors:
         add_gaia_galactic_pm_errors(df)
+    np.seterr(**old_settings)
 
 
 def add_gaia_galactic_pm_errors(df):
