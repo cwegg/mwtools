@@ -25,9 +25,9 @@ def gaia_xmatch_results():
 
 def test_gaiadr2_pms(gaia_xmatch_results):
     mwtools.add_gaia_galactic_pms(gaia_xmatch_results)
-    assert gaia_xmatch_results.pml[0] == -6.331141220895921
+    assert gaia_xmatch_results.pml[0] == pytest.approx(-6.331141220895921)
 
 
 def test_gaiadr2_pmerrors(gaia_xmatch_results):
     mwtools.add_gaia_galactic_pms(gaia_xmatch_results)
-    assert gaia_xmatch_results.pml_pmb_corr[0] == -0.030277463861580655
+    assert gaia_xmatch_results.pml_pmb_corr[0] == pytest.approx(-0.030277463861580655)
