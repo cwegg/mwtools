@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 from setuptools import setup, find_packages
+
 setup(name='mwtools',
       version='0.1',
       description='Tools for dealing with Milky Way data',
@@ -8,5 +9,5 @@ setup(name='mwtools',
       author_email='chriswegg+mwtools@gmail.com',
       url='https://gitlab.com/chriswegg/mwtools',
       packages=find_packages(),
-      install_requires=['python-dotenv','astropy','astroquery','galpy','pandas']
-     )
+      install_requires=['python-dotenv', 'astropy', 'astroquery', 'galpy', 'pandas', 'requests']
+      )
