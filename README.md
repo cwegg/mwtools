@@ -1,4 +1,4 @@
-# mw-data-tools
+# mw-tools
 
 Some Common tools for dealing with MW data and e.g. cross matching, querying WSA/VSA
 
