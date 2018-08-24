@@ -2,6 +2,8 @@
 
 Some Common tools for dealing with MW data and e.g. cross matching, querying WSA/VSA
 
+For example usage look at examples/examples.ipynb
+
 To query private WSA or VSA place your usename and password in the .env file like:
 
     WSAUSERNAME = MaxMustermann
