@@ -4,13 +4,22 @@ Some Common tools for dealing with MW data and e.g. cross matching, querying WSA
 
 For example usage look at examples/examples.ipynb
 
-To query private WSA or VSA place your usename and password in the .env file like:
+To install run either
+
+    pip install .
+    
+or
+
+    python setup.py install
+    
+
+After installation, to query private WSA or VSA place your usename and password in the .env file like:
 
     WSAUSERNAME = MaxMustermann
     WSAPASSWORD = password1234
     WSACOMMUNITY = myinstitute.edu
 
-Or similar for VVV.
+Or similar for the VSA.
 
 To use nemo interface at mwtools.nemo then:
 1. Install Nemo
