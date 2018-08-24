@@ -67,13 +67,14 @@ def _query_w_or_v_sa(sql, database, filename, file_to_upload, loginurl, sqlurl, 
     """Adapted from http://casu.ast.cam.ac.uk/surveys-projects/wfcam/data-access/wsa-freeform.py"""
     # Send request to login to the archive
 
-    q = loginurl % (login_details['username'], login_details['password'], login_details['community'])
-    response = urllib.request.urlopen(q)
-    request = urllib.request.Request(q)
-
-    # Extract the cookies from the response header and use them for future connections
     cj = CookieJar()
-    cj.extract_cookies(response, request)
+    if login_details['username'] != '':
+        q = loginurl % (login_details['username'], login_details['password'], login_details['community'])
+        response = urllib.request.urlopen(q)
+        request = urllib.request.Request(q)
+
+        # Extract the cookies from the response header and use them for future connections
+        cj.extract_cookies(response, request)
     opener = urllib.request.build_opener(urllib.request.HTTPCookieProcessor(cj))
 
     # Construct and post the request
