@@ -68,7 +68,8 @@ def _query_w_or_v_sa(sql, database, filename, file_to_upload, loginurl, sqlurl, 
     # Send request to login to the archive
 
     cj = CookieJar()
-    if login_details['username'] != '':
+    if login_details['username'].strip():
+        # There are non-empty login details
         q = loginurl % (login_details['username'], login_details['password'], login_details['community'])
         response = urllib.request.urlopen(q)
         request = urllib.request.Request(q)
