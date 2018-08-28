@@ -1,4 +1,4 @@
-# mw-tools
+# mwtools
 
 Some Common tools for dealing with MW data and e.g. cross matching, querying WSA/VSA
 
@@ -13,7 +13,8 @@ or
     python setup.py install
     
 
-After installation, to query private WSA or VSA place your usename and password in the .env file like:
+After installation, if you'd like to query the private databases on WSA or VSA 
+place your usename and password in the .env file like:
 
     WSAUSERNAME = MaxMustermann
     WSAPASSWORD = password1234
@@ -24,5 +25,5 @@ Or similar for the VSA.
 To use nemo interface at mwtools.nemo then:
 1. Install Nemo
 2. Give the locations of the nemo executables as NEMO_LOCATION in the .env file
-3. Give the location of Walter Dehnens falcOn as NEMO_DEHNEN_LOCATION in .env
-(this should have the directories 'falcON' and 'utils' inside)
+If there are problems with the routines calling nemo from python then add
+verbose=True and see what error messages are produced.
