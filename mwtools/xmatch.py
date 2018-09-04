@@ -1,9 +1,24 @@
 import tempfile
 import warnings
-
 from astropy.table import Table
-from astroquery.gaia import Gaia
 import numpy as np
+from contextlib import contextmanager
+import os
+import sys
+
+@contextmanager
+def suppress_stdout():
+    with open(os.devnull, "w") as devnull:
+        old_stdout = sys.stdout
+        sys.stdout = devnull
+        try:
+            yield
+        finally:
+            sys.stdout = old_stdout
+
+with suppress_stdout():
+    from astroquery.gaia import Gaia
+
 
 def _get_column_from_keylist(df, keylist):
     for key in keylist:
