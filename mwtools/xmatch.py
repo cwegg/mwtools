@@ -19,9 +19,10 @@ def _make_coordinate_table(df):
     return coordinate_table
 
 
-def Gaia_DR2_Xmatch(df, dist=1):
+def Gaia_DR2_Xmatch(df, dist=1, nearest=True):
     """Cross match a pandas dataframe to Gaia DR2. The dataframe should have columns named ra and de(c). Returns
-    the nearest cross match"""
+    the nearest cross match if nearest is True (and the returned dataframe is the same size as the input),
+    otherwise return all the cross matches (and the returned dataframe will be larger than the input)"""
 
     # We take and return pandas DataFrames but use astropy tables to make a votable of coordinates to upload
     coordinate_table = _make_coordinate_table(df)
@@ -53,5 +54,9 @@ def Gaia_DR2_Xmatch(df, dist=1):
     # joined_table = astropy.table.join(table, xmatched_table, join_type='left', keys='xmatch_id')
     # joined_table.remove_column('xmatch_id')
     joined_df = df.merge(xmatched_df,how='left',left_on=xmatch_id,right_on='xmatch_id')
+    if nearest:
+        # To select the nearest we group by the xmatch_id and select the nearest cross-match
+        joined_df = joined_df.sort_values(['xmatch_id', 'dist'], ascending=True).groupby('xmatch_id').first().reset_index()
     joined_df.drop(['xmatch_id'],1,inplace=True)
+
     return joined_df
