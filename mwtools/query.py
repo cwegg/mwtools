@@ -15,7 +15,7 @@ dotenv_path = find_dotenv(usecwd=True)
 load_dotenv(dotenv_path)
 
 
-def query_wsa(sql, database='UKIDSSDR10PLUS', filename=None, file_to_upload=None):
+def query_wsa(sql, database='UKIDSSDR10PLUS', filename=None, file_to_upload=None, lowercase=True):
     """Submits a SQL query to the (WSA - WFCAM Science Archive) and returns the result as a pandas dataframe.
     Query is submitted to http://wsa.roe.ac.uk:8080/wsa/SQL_form.jsp. If a file_to_upload is a votable then
     this can be accessed as #userTable. See the WSA website for full information. It filename is set then we write
@@ -31,10 +31,11 @@ def query_wsa(sql, database='UKIDSSDR10PLUS', filename=None, file_to_upload=None
     loginurl = "http://surveys.roe.ac.uk:8080/wsa/DBLogin?user=%s&passwd=%s&community=+&community2=+%s&submit=Login"
     sqlurl = "http://wsa.roe.ac.uk:8080/wsa/WSASQL"
 
-    return _query_w_or_v_sa(sql, database, filename, file_to_upload, loginurl, sqlurl, login_details)
+    return _query_w_or_v_sa(sql, database, filename, file_to_upload, loginurl, sqlurl, login_details,
+                            lowercase=lowercase)
 
 
-def query_vsa(sql, programmeID='VVV', database='VVVDR4', filename=None, file_to_upload=None):
+def query_vsa(sql, programmeID='VVV', database='VVVDR4', filename=None, file_to_upload=None, lowercase=True):
     """Submits a SQL query to the VSA (VISTA Science Archive) and returns the result as a pandas dataframe.
     Query is submitted to http://horus.roe.ac.uk:8080/vdfs/VSQL_form.jsp If a file_to_upload is a votable then
     this can be accessed as #userTable. See the WSA website for full information. It filename is set then we write
@@ -60,10 +61,11 @@ def query_vsa(sql, programmeID='VVV', database='VVVDR4', filename=None, file_to_
         raise ValueError("programmeID {} not recognised".format(programmeID))
 
     return _query_w_or_v_sa(sql, database, filename, file_to_upload, loginurl, sqlurl,
-                            login_details, programme_id=programmeIDnumber)
+                            login_details, programme_id=programmeIDnumber, lowercase=lowercase)
 
 
-def _query_w_or_v_sa(sql, database, filename, file_to_upload, loginurl, sqlurl, login_details, programme_id=None):
+def _query_w_or_v_sa(sql, database, filename, file_to_upload, loginurl, sqlurl, login_details, programme_id=None,
+                     lowercase=True):
     """Adapted from http://casu.ast.cam.ac.uk/surveys-projects/wfcam/data-access/wsa-freeform.py"""
     # Send request to login to the archive
 
@@ -114,4 +116,9 @@ def _query_w_or_v_sa(sql, database, filename, file_to_upload, loginurl, sqlurl, 
 
     # FITs files are big endian, while pandas assumes native byte order i.e. little endian on x86
     # calling .byteswap().newbyteorder() on a numpy array switches to native order
-    return pd.DataFrame(np.array(hdulist[1].data).byteswap().newbyteorder())
+    df = pd.DataFrame(np.array(hdulist[1].data).byteswap().newbyteorder())
+
+    if lowercase:
+        df.columns = map(str.lower, df.columns)
+
+    return df
