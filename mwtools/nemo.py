@@ -28,7 +28,7 @@ _NEMO_BIN_LOCATION = os.path.join(_NEMO_LOCATION, 'bin')
 def _make_nemo_env():
     """
     Nemo doesnt make static executables for GyrFalcon/getgravity. normally nemo_start.csh would add the paths to the
-    libraries. here we call nemo_start.csh and use the envonment variables it sets to create out environment
+    libraries. here we call nemo_start.csh and use the environment variables it sets to create our environment
     """
     command = ['csh', '-c', 'source ' + os.path.join(_NEMO_LOCATION, 'nemo_start.csh') + '  && env']
     proc = subprocess.Popen(command, stdout=subprocess.PIPE)
