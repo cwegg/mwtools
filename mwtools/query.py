@@ -121,4 +121,7 @@ def _query_w_or_v_sa(sql, database, filename, file_to_upload, loginurl, sqlurl, 
     if lowercase:
         df.columns = map(str.lower, df.columns)
 
+    if not filename:
+        os.remove(f.name)
+
     return df
