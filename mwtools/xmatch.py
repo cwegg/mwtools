@@ -57,8 +57,9 @@ def Gaia_DR2_Xmatch(df, dist=1, nearest=True):
     # It seems Gaia DR2 source table produces many votable warnings that aren't important
     with warnings.catch_warnings():
         warnings.filterwarnings('ignore')
-        job = Gaia.launch_job_async(query=cross_match_query, upload_resource=file_to_upload.name,
-                                    upload_table_name="table_test")
+        with suppress_stdout():
+            job = Gaia.launch_job_async(query=cross_match_query, upload_resource=file_to_upload.name,
+                                        upload_table_name="table_test")
     xmatched_table = job.get_results()
     xmatched_table.remove_columns(['ra', 'dec'])
     xmatched_table.rename_column('ra_2', 'ra_gaia')
