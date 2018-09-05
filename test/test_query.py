@@ -9,13 +9,13 @@ import tempfile
 
 def test_query_wsa():
     df = mwtools.query_wsa('select top 1 ra from gcsSource', database='UKIDSSDR10PLUS')
-    assert df.RA[0] == 3.2520437684847763
+    assert df.ra[0] == 3.2520437684847763
 
 
 def test_query_wsa_with_filename():
     testfile = 'testfile.fits'
     df = mwtools.query_wsa('select top 1 ra from gcsSource', filename=testfile)
-    assert df.RA[0] == 3.2520437684847763
+    assert df.ra[0] == 3.2520437684847763
     os.remove(testfile)
 
 
@@ -34,4 +34,4 @@ def test_query_wsa_uploadvot():
         coordinate_table.write(file_to_upload, format='votable')
 
     df = mwtools.query_wsa('select top 1 ra from gcsSource', file_to_upload=file_to_upload.name)
-    assert df.RA[0] == 3.2520437684847763
+    assert df.ra[0] == 3.2520437684847763
