@@ -1,6 +1,26 @@
 import galpy.util.bovy_coords as bovy_coords
 import numpy as np
 import astropy.units as u
+import tempfile
+import os
+import sys
+import warnings
+from astropy.table import Table
+from contextlib import contextmanager
+
+# Below is to supress the output produced when importing Gaia from astroquery
+@contextmanager
+def suppress_stdout():
+    with open(os.devnull, "w") as devnull:
+        old_stdout = sys.stdout
+        sys.stdout = devnull
+        try:
+            yield
+        finally:
+            sys.stdout = old_stdout
+
+with suppress_stdout():
+    from astroquery.gaia import Gaia
 
 
 def add_gaia_galactic_pms(df, errors=True):
@@ -34,3 +54,30 @@ def add_gaia_galactic_pm_errors(df):
     df['pml_error'] = np.sqrt(cov[:, 0, 0])
     df['pmb_error'] = np.sqrt(cov[:, 1, 1])
     df['pml_pmb_corr'] = cov[:, 0, 1] / (np.sqrt(cov[:, 0, 0]) * np.sqrt(cov[:, 1, 1]))
+
+def Gaia_adql(query,upload=None):
+    """Run query on gaia archive and return results as a pandas dataframe.
+    If upload is a pandas dataframe then this is uploaded to the archive
+    and available as the table tap_upload.uploadedtable"""
+
+    # We take and return pandas DataFrames but use astropy tables to make a votable of coordinates to upload
+
+    with tempfile.NamedTemporaryFile(suffix='.xml', mode='w') as file_to_upload:
+        if upload is not None:
+            table = Table.from_pandas(upload)
+            table.write(file_to_upload, format='votable')
+
+        # It seems Gaia DR2 source table produces many votable warnings that aren't important
+        with warnings.catch_warnings():
+            warnings.filterwarnings('ignore')
+            with suppress_stdout():
+                if upload is not None:
+                    job = Gaia.launch_job_async(query=query, upload_resource=file_to_upload.name,
+                                                upload_table_name="uploadedtable")
+                else:
+                    job = Gaia.launch_job_async(query=query)
+
+        result = job.get_results()
+        result_df = result.to_pandas()
+
+    return result_df

@@ -62,10 +62,18 @@ def Gaia_DR2_Xmatch(df, dist=1, nearest=True):
                 job = Gaia.launch_job_async(query=cross_match_query, upload_resource=file_to_upload.name,
                                             upload_table_name="table_test")
         xmatched_table = job.get_results()
+
+        # Rename columns so we have ra and dec as _gaia 
         xmatched_table.remove_columns(['ra', 'dec'])
         xmatched_table.rename_column('ra_2', 'ra_gaia')
         xmatched_table.rename_column('dec_2', 'dec_gaia')
         xmatched_df = xmatched_table.to_pandas()
+
+        columns=['designation','datalink_url']
+        xmatched_df.loc[:,columns]=xmatched_df[columns].applymap(str)
+        columns=['astrometric_primary_flag','duplicated_source','phot_variable_flag']
+        xmatched_df.loc[:,columns]=xmatched_df[columns].applymap(bool)      
+
         if xmatched_df.empty:
             raise ValueError('No crossmatches found')
         # joined_table = astropy.table.join(table, xmatched_table, join_type='left', keys='xmatch_id')
@@ -75,5 +83,12 @@ def Gaia_DR2_Xmatch(df, dist=1, nearest=True):
             # To select the nearest we group by the xmatch_id and select the nearest cross-match
             joined_df = joined_df.sort_values(['xmatch_id', 'dist'], ascending=True).groupby('xmatch_id').first().reset_index()
         joined_df.drop(['xmatch_id'],1,inplace=True)
+
+        # Some DR2 columns end up messed up... fix them. The problem maybe due to NaNs in otherwise bool/string columns
+        columns=['designation','datalink_url']
+        joined_df.loc[:,columns]=joined_df[columns].applymap(str)
+        columns=['astrometric_primary_flag','duplicated_source','phot_variable_flag']
+        joined_df.loc[:,columns]=joined_df[columns].applymap(bool)      
+
 
     return joined_df
