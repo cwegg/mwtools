@@ -29,8 +29,8 @@ def _get_column_from_keylist(df, keylist):
 
 
 def _make_coordinate_table(df):
-    ra_column = _get_column_from_keylist(df, ['ra', 'RA'])
-    dec_column = _get_column_from_keylist(df, ['dec', 'DEC', 'de', 'DE'])
+    ra_column = _get_column_from_keylist(df, ['ra', 'RA','radeg','RAdeg'])
+    dec_column = _get_column_from_keylist(df, ['dec', 'DEC', 'de', 'DE', 'dedeg', 'DEdeg'])
     coordinate_table = Table(data=[ra_column, dec_column], names=('RA', 'DEC'))
     return coordinate_table
 
@@ -68,11 +68,6 @@ def Gaia_DR2_Xmatch(df, dist=1, nearest=True):
         xmatched_table.rename_column('ra_2', 'ra_gaia')
         xmatched_table.rename_column('dec_2', 'dec_gaia')
         xmatched_df = xmatched_table.to_pandas()
-
-        columns=['designation','datalink_url']
-        xmatched_df.loc[:,columns]=xmatched_df[columns].applymap(str)
-        columns=['astrometric_primary_flag','duplicated_source','phot_variable_flag']
-        xmatched_df.loc[:,columns]=xmatched_df[columns].applymap(bool)      
 
         if xmatched_df.empty:
             raise ValueError('No crossmatches found')

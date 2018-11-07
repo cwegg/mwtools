@@ -8,6 +8,7 @@ import warnings
 from astropy.table import Table
 from contextlib import contextmanager
 
+
 # Below is to supress the output produced when importing Gaia from astroquery
 @contextmanager
 def suppress_stdout():
@@ -19,19 +20,21 @@ def suppress_stdout():
         finally:
             sys.stdout = old_stdout
 
+
 with suppress_stdout():
     from astroquery.gaia import Gaia
 
 
 def add_gaia_galactic_pms(df, errors=True):
+    """Add proper motions in galactic coordinates to a Gaia DR2 pandas DataFrame"""
     old_settings = np.seterr(invalid='ignore')
     try:
-        ra,dec = np.array(['ra_gaia']),np.array(df['dec_gaia'])
+        ra, dec = np.array(['ra_gaia']), np.array(df['dec_gaia'])
     except KeyError:
-        ra,dec = np.array(['ra']),np.array(df['dec'])
-    pmra, pmdec = np.array(['pmra']),np.array(df['pmdec'])
+        ra, dec = np.array(['ra']), np.array(df['dec'])
+    pmra, pmdec = np.array(['pmra']), np.array(df['pmdec'])
 
-    mul, mub = bovy_coords.pmrapmdec_to_pmllpmbb(pmra,pmdec,ra,dec, degree=True).T
+    mul, mub = bovy_coords.pmrapmdec_to_pmllpmbb(pmra, pmdec, ra, dec, degree=True).T
     df['pml'] = mul
     df['pmb'] = mub
     if errors:
@@ -40,7 +43,8 @@ def add_gaia_galactic_pms(df, errors=True):
 
 
 def add_gaia_galactic_pm_errors(df):
-        off_diag = df['pmra_error'] * df['pmdec_error'] * df['pmra_pmdec_corr']
+    """Add errors in proper motions in galactic coordinates to a Gaia DR2 pandas DataFrame"""
+    off_diag = df['pmra_error'] * df['pmdec_error'] * df['pmra_pmdec_corr']
     covpmrapmdec = np.array([[df['pmra_error'] ** 2, off_diag], [off_diag, df['pmdec_error'] ** 2]])
     try:
         ra_deg = np.array(df['ra_gaia'] / u.deg)
@@ -55,7 +59,8 @@ def add_gaia_galactic_pm_errors(df):
     df['pmb_error'] = np.sqrt(cov[:, 1, 1])
     df['pml_pmb_corr'] = cov[:, 0, 1] / (np.sqrt(cov[:, 0, 0]) * np.sqrt(cov[:, 1, 1]))
 
-def Gaia_adql(query,upload=None):
+
+def Gaia_adql(query, upload=None):
     """Run query on gaia archive and return results as a pandas dataframe.
     If upload is a pandas dataframe then this is uploaded to the archive
     and available as the table tap_upload.uploadedtable"""
