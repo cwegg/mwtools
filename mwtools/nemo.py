@@ -14,9 +14,11 @@ add verbose=True to the failing command, and see if there's a useful message bei
 import os
 import subprocess
 import tempfile
-from .nmagic import NMagicParticles
+
 import numpy as np
 from dotenv import load_dotenv, find_dotenv
+
+from .nmagic import NMagicParticles
 
 _dotenv_path = find_dotenv(usecwd=True)
 load_dotenv(_dotenv_path, override=True)
@@ -143,14 +145,17 @@ def getpartpot(particles, verbose=False):
         writesnap(particles, filename=filein, time=0.0)
         fileout = tmpdirname + 'partpot.falc'
         p = call_nemo_executable("gyrfalcON", ["in=" + filein, "out=" + fileout, "tstop=0", "theta=0.5",
-                                               "eps=0.05", "kmax=6", "give=phi"])
+                                               "eps=0.05", "kmax=6", "give=phi", "Ncrit=20"])
         (stdout, stderr) = p.communicate()
         if verbose:
             print(stdout.decode('utf-8'), stderr.decode('utf-8'))
-        p = call_nemo_executable("snapprint", ["in=" + fileout + " options=phi"])
+        p = call_nemo_executable("snapprint", ["in=" + fileout, "options=phi"])
         fromfalc = np.genfromtxt(p.stdout)
         if verbose:
             print(p.stderr.read().decode('utf-8'))
+
+        if isinstance(particles, NMagicParticles) and particles.phys:
+            fromfalc *= 4.301e-6
 
     return fromfalc
 
@@ -222,7 +227,7 @@ def integrate(particles, t=1., step=None, verbose=False):
     return tlist, snaps
 
 
-def gravity_cartesian_grid(particles, x, y, z, polar_forces=False):
+def gravity_cartesian_grid(particles, x, y, z, polar_forces=False, verbose=False):
     """
     Takes vectors of r theta and phi and then on the 3d sphical polar grid and
     computes the gravity using gyrfalcON.
@@ -241,7 +246,7 @@ def gravity_cartesian_grid(particles, x, y, z, polar_forces=False):
     # gyrfalcon crashes if there are 2 particles in the same location, remove duplicates
     # (eg along z axis), but keep track of indexes to add them back at the end
     unique_pos, inds = np.unique(pos, axis=0, return_inverse=True)
-    grav = getgravity(particles, unique_pos)
+    grav = getgravity(particles, unique_pos, verbose)
     ret = {}
     ret['x'] = x
     ret['y'] = y
@@ -249,19 +254,25 @@ def gravity_cartesian_grid(particles, x, y, z, polar_forces=False):
     ret['pot'] = np.reshape(grav[inds, 3], xmat.shape)
     ret['F'] = np.reshape(grav[inds, 0:3], xmat.shape + (3,))
     if polar_forces:
-        Fx, Fy, Fz = ret['F']
+        Fx = ret['F'][..., 0]
+        Fy = ret['F'][..., 1]
+        Fz = ret['F'][..., 2]
         rmat = np.sqrt(xmat ** 2 + ymat ** 2 + zmat ** 2)
-        Fr = (Fx * xmat + Fy * ymat + Fz * zmat) / rmat
-        Rcyl = np.sqrt(xmat ** 2 + ymat ** 2)
-        Ftheta = ((xmat * Fx + ymat * Fy) * zmat - Rcyl ** 2 * Fz) / rmat / Rcyl
-        Fphi = (-ymat * Fx + xmat * Fy) / Rcyl
-        ret['F'] = np.vstack((Fr, Ftheta, Fphi))
+        with np.errstate(divide='ignore', invalid='ignore'):
+            Fr = (Fx * xmat + Fy * ymat + Fz * zmat) / rmat
+            Rcyl = np.sqrt(xmat ** 2 + ymat ** 2)
+            Ftheta = ((xmat * Fx + ymat * Fy) * zmat - Rcyl ** 2 * Fz) / rmat / Rcyl
+            Fphi = (-ymat * Fx + xmat * Fy) / Rcyl
+        Fr[rmat == 0] = 0
+        Ftheta[Rcyl == 0] = 0
+        Fphi[Rcyl == 0] = 0
+        ret['F'] = np.stack((Fr, Ftheta, Fphi), axis=-1)
     ret['pot'] = ret['pot'].squeeze()
     ret['F'] = ret['F'].squeeze()
     return ret
 
 
-def gravity_spherical_grid(particles, r, theta, phi, polar_forces=False):
+def gravity_spherical_grid(particles, r, theta, phi, polar_forces=False, verbose=False):
     """
     Takes 1d vectors of x, y and z and then on the resultant 3d cartesian grid
     computes the gravity using gyrfalcON.
@@ -271,10 +282,10 @@ def gravity_spherical_grid(particles, r, theta, phi, polar_forces=False):
     If particles is a NMagicParticles instance in physical units then return in kpc,(km/s)**2 else
     return in internal units i.e. assuming G=1.
     """
-    phi_v, theta_v, r_v = np.meshgrid(phi, theta, r)
-    x = r_v * np.sin(phi_v) * np.cos(theta_v)
-    y = r_v * np.sin(phi_v) * np.sin(theta_v)
-    z = r_v * np.cos(phi_v)
+    phi_v, theta_v, r_v = np.meshgrid(phi, theta, r, indexing='ij')
+    x = r_v * np.sin(theta_v) * np.cos(phi_v)
+    y = r_v * np.sin(theta_v) * np.sin(phi_v)
+    z = r_v * np.cos(theta_v)
     pos = np.zeros((len(x.flatten()), 3))
     pos[:, 0] = x.flatten()
     pos[:, 1] = y.flatten()
@@ -282,7 +293,7 @@ def gravity_spherical_grid(particles, r, theta, phi, polar_forces=False):
     # gyrfalcon crashes if there are 2 particles in the same location, remove duplicates
     # (eg along z axis), but keep track of indexes to add them back at the end
     unique_pos, inds = np.unique(pos, axis=0, return_inverse=True)
-    grav = getgravity(particles, unique_pos)
+    grav = getgravity(particles, unique_pos, verbose)
     ret = {}
     ret['r'] = r
     ret['theta'] = theta
@@ -290,12 +301,18 @@ def gravity_spherical_grid(particles, r, theta, phi, polar_forces=False):
     ret['pot'] = np.reshape(grav[inds, 3], x.shape)
     ret['F'] = np.reshape(grav[inds, 0:3], x.shape + (3,))
     if polar_forces:
-        Fx, Fy, Fz = ret['F']
-        Fr = (Fx * x + Fy * y + Fz * z) / r_v
-        Rcyl = np.sqrt(x ** 2 + y ** 2)
-        Ftheta = ((x * Fx + y * Fy) * z - Rcyl ** 2 * Fz) / r_v / Rcyl
-        Fphi = (-y * Fx + x * Fy) / Rcyl
-        ret['F'] = np.vstack((Fr, Ftheta, Fphi))
+        Fx = ret['F'][..., 0]
+        Fy = ret['F'][..., 1]
+        Fz = ret['F'][..., 2]
+        with np.errstate(divide='ignore', invalid='ignore'):
+            Fr = (Fx * x + Fy * y + Fz * z) / r_v
+            Rcyl = np.sqrt(x ** 2 + y ** 2)
+            Ftheta = ((x * Fx + y * Fy) * z - Rcyl ** 2 * Fz) / r_v / Rcyl
+            Fphi = (-y * Fx + x * Fy) / Rcyl
+        Fr[r_v == 0] = 0
+        Ftheta[Rcyl == 0] = 0
+        Fphi[Rcyl == 0] = 0
+        ret['F'] = np.stack((Fr, Ftheta, Fphi), axis=-1)
     ret['pot'] = ret['pot'].squeeze()
     ret['F'] = ret['F'].squeeze()
     return ret
