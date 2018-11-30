@@ -67,7 +67,7 @@ def Gaia_DR2_Xmatch(df, dist=1, nearest=True):
         xmatched_table.remove_columns(['ra', 'dec'])
         xmatched_table.rename_column('ra_2', 'ra_gaia')
         xmatched_table.rename_column('dec_2', 'dec_gaia')
-        xmatched_df = xmatched_table.to_pandas()
+        xmatched_df = xmatched_table.filled().to_pandas()
 
         columns=['designation','datalink_url']
         xmatched_df.loc[:,columns]=xmatched_df[columns].applymap(str)
@@ -76,9 +76,16 @@ def Gaia_DR2_Xmatch(df, dist=1, nearest=True):
 
         if xmatched_df.empty:
             raise ValueError('No crossmatches found')
-        # joined_table = astropy.table.join(table, xmatched_table, join_type='left', keys='xmatch_id')
-        # joined_table.remove_column('xmatch_id')
-        joined_df = df.merge(xmatched_df,how='left',left_on=xmatch_id,right_on='xmatch_id')
+
+        # We have to hack to get the join to preserve our int64 numbers. Because we do an outer join the unmatched
+        # stars have NaNs and to facilitate this pandas converts int64 to float64. But this precision loss is
+        # unacceptable. We store the upper and lower 32bits seperately and convert back to int64 afterwards
+        int64_columns = xmatched_df.dtypes[xmatched_df.dtypes == 'int64']
+        for column in int64_columns.index:
+            xmatched_df[f'{column}_low'] = xmatched_df[column].astype(np.int32)
+            xmatched_df[f'{column}_high'] = (xmatched_df[column].values >> 32).astype(np.int32)
+
+        joined_df = df.merge(xmatched_df,how='left',left_on=xmatch_id,right_on='xmatch_id',suffixes=('_orig',''))
         if nearest:
             # To select the nearest we group by the xmatch_id and select the nearest cross-match
             joined_df = joined_df.sort_values(['xmatch_id', 'dist'], ascending=True).groupby('xmatch_id').first().reset_index()
@@ -88,7 +95,14 @@ def Gaia_DR2_Xmatch(df, dist=1, nearest=True):
         columns=['designation','datalink_url']
         joined_df.loc[:,columns]=joined_df[columns].applymap(str)
         columns=['astrometric_primary_flag','duplicated_source','phot_variable_flag']
-        joined_df.loc[:,columns]=joined_df[columns].applymap(bool)      
+        joined_df.loc[:,columns]=joined_df[columns].applymap(bool)
+
+        # reconstruct the int64 columns from the high and low 32bit parts
+        for column in int64_columns.index:
+            joined_df[column] = (joined_df[f'{column}_high'].values.astype(np.int64) << 32) + \
+                                  joined_df[f'{column}_low'].values.astype(np.int64)
+            joined_df.drop([f'{column}_low'],1,inplace=True)
+            joined_df.drop([f'{column}_high'],1,inplace=True)
 
 
     return joined_df
