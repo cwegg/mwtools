@@ -98,6 +98,23 @@ def writesnap(particles, filename, time=0.0, verbose=False, positions_only=False
         print(stdoutdata.decode('utf-8'), stderrdata.decode('utf-8'))
 
 
+def readsnap(filename, times='all', verbose=False):
+    """
+    Read a nemo snapshot of particles
+    This reads a snapshot with postitions, velocities and masses.
+    """
+    p = call_nemo_executable("snapprint", ["in=" + filename, "options=t,x,y,z,vx,vy,vz,m", f"times={times}"])
+
+    snaps = np.genfromtxt(p.stdout)
+    if verbose:
+        print(p.stderr.read().decode('utf-8'))
+
+    tlist, ti = np.unique(snaps[:, 0], return_inverse=True)
+    snaps = (np.reshape(snaps, (len(tlist), np.size(snaps) // (8 * len(tlist)), 8)))[:, :, 1:]
+    return tlist, snaps
+
+
+
 def rotationcurve(particles, nr=100, ntheta=100, rrange=(0, 10), verbose=False):
     """
     Computes the rotation curve of particles as a function of r in the X,Y plane using gyrfalcON
@@ -223,7 +240,7 @@ def integrate(particles, t=1., step=None, verbose=False):
             print(p.stderr.read().decode('utf-8'))
 
         tlist, ti = np.unique(snaps[:, 0], return_inverse=True)
-        snaps = (np.reshape(snaps, (len(tlist), np.size(snaps) / (9 * len(tlist)), 9)))[:, :, 1:]
+        snaps = (np.reshape(snaps, (len(tlist), np.size(snaps) // (9 * len(tlist)), 9)))[:, :, 1:]
     return tlist, snaps
 
 
@@ -282,7 +299,7 @@ def gravity_spherical_grid(particles, r, theta, phi, polar_forces=False, verbose
     If particles is a NMagicParticles instance in physical units then return in kpc,(km/s)**2 else
     return in internal units i.e. assuming G=1.
     """
-    phi_v, theta_v, r_v = np.meshgrid(phi, theta, r, indexing='ij')
+    r_v, theta_v, phi_v = np.meshgrid(r, theta, phi, indexing='ij')
     x = r_v * np.sin(theta_v) * np.cos(phi_v)
     y = r_v * np.sin(theta_v) * np.sin(phi_v)
     z = r_v * np.cos(theta_v)
