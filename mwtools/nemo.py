@@ -98,19 +98,20 @@ def writesnap(particles, filename, time=0.0, verbose=False, positions_only=False
         print(stdoutdata.decode('utf-8'), stderrdata.decode('utf-8'))
 
 
-def readsnap(filename, times='all', verbose=False):
+def readsnap(filename, times='all', verbose=False, give='t,x,y,z,vx,vy,vz,m'):
     """
     Read a nemo snapshot of particles
     This reads a snapshot with postitions, velocities and masses.
     """
-    p = call_nemo_executable("snapprint", ["in=" + filename, "options=t,x,y,z,vx,vy,vz,m", f"times={times}"])
+    p = call_nemo_executable("snapprint", ["in=" + filename, "options="+give, f"times={times}"])
 
     snaps = np.genfromtxt(p.stdout)
     if verbose:
         print(p.stderr.read().decode('utf-8'))
 
+    columns = give.count(',')+1
     tlist, ti = np.unique(snaps[:, 0], return_inverse=True)
-    snaps = (np.reshape(snaps, (len(tlist), np.size(snaps) // (8 * len(tlist)), 8)))[:, :, 1:]
+    snaps = (np.reshape(snaps, (len(tlist), np.size(snaps) // (columns * len(tlist)), columns)))[:, :, 1:]
     return tlist, snaps
 
 
