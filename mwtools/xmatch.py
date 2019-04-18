@@ -29,8 +29,8 @@ def _get_column_from_keylist(df, keylist):
 
 
 def _make_coordinate_table(df):
-    ra_column = _get_column_from_keylist(df, ['ra', 'RA','radeg','RAdeg'])
-    dec_column = _get_column_from_keylist(df, ['dec', 'DEC', 'de', 'DE', 'dedeg', 'DEdeg'])
+    ra_column = _get_column_from_keylist(df, ['ra', 'RA','radeg','RAdeg','RA_J2000'])
+    dec_column = _get_column_from_keylist(df, ['dec', 'DEC', 'de', 'DE', 'dedeg', 'DEdeg','DEC_J2000'])
     coordinate_table = Table(data=[ra_column, dec_column], names=('RA', 'DEC'))
     return coordinate_table
 
