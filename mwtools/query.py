@@ -61,11 +61,12 @@ def query_vsa(sql, programmeID='VVV', database='VVVDR4', filename=None, file_to_
         raise ValueError("programmeID {} not recognised".format(programmeID))
 
     return _query_w_or_v_sa(sql, database, filename, file_to_upload, loginurl, sqlurl,
-                            login_details, programme_id=programmeIDnumber, lowercase=lowercase)
+                            login_details, programme_id=programmeIDnumber, lowercase=lowercase, 
+                            extra_post={'archive':'VSA'})
 
 
 def _query_w_or_v_sa(sql, database, filename, file_to_upload, loginurl, sqlurl, login_details, programme_id=None,
-                     lowercase=True):
+                     lowercase=True, extra_post=None):
     """Adapted from http://casu.ast.cam.ac.uk/surveys-projects/wfcam/data-access/wsa-freeform.py"""
     # Send request to login to the archive
 
@@ -83,7 +84,11 @@ def _query_w_or_v_sa(sql, database, filename, file_to_upload, loginurl, sqlurl, 
     # Construct and post the request
     postdata = {'formaction': 'freeform', 'sqlstmt': sql, 'emailAddress': '',
                 'database': database, 'timeout': 1800,
-                'format': 'FITS', 'compress': 'GZIP', 'rows': 30, 'iFmt': 'VOTable'}
+                'format': 'FITS', 'compress': 'GZIP', 'rows': 10, 'iFmt': 'VOTable'}
+
+    if extra_post is not None:
+        postdata.update(extra_post)
+
     if programme_id is not None:
         postdata['programmeID'] = programme_id
 

@@ -29,7 +29,7 @@ def add_gaia_galactic_pms(df, errors=True):
     """Add proper motions in galactic coordinates to a Gaia DR2 pandas DataFrame"""
     old_settings = np.seterr(invalid='ignore')
     try:
-        ra, dec = np.array([df'ra_gaia']), np.array(df['dec_gaia'])
+        ra, dec = np.array(df['ra_gaia']), np.array(df['dec_gaia'])
     except KeyError:
         ra, dec = np.array(df['ra']), np.array(df['dec'])
     pmra, pmdec = np.array(df['pmra']), np.array(df['pmdec'])

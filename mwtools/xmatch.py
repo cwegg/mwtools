@@ -35,7 +35,7 @@ def _make_coordinate_table(df):
     return coordinate_table
 
 
-def Gaia_DR2_Xmatch(df, dist=1, nearest=True):
+def Gaia_DR2_Xmatch(df, dist=1, nearest=True,gaia_columns='gaia.*'):
     """Cross match a pandas dataframe to Gaia DR2. The dataframe should have columns named ra and de(c). Returns
     the nearest cross match if nearest is True (and the returned dataframe is the same size as the input),
     otherwise return all the cross matches (and the returned dataframe will be larger than the input)"""
@@ -49,7 +49,7 @@ def Gaia_DR2_Xmatch(df, dist=1, nearest=True):
 
         # Construct cross-match query. Taken from the Gaia archive examples
         cross_match_query = """SELECT distance(POINT('ICRS', mystars.ra, mystars.dec), POINT('ICRS', gaia.ra, gaia.dec))
-            AS dist, mystars. *, gaia. * FROM tap_upload.table_test
+            AS dist, mystars. *, """+gaia_columns+""" FROM tap_upload.table_test
             AS mystars, gaiadr2.gaia_source
             AS gaia WHERE 
             1 = CONTAINS(POINT('ICRS', mystars.ra, mystars.dec), CIRCLE('ICRS', gaia.ra, gaia.dec, {}))""".format(
@@ -88,9 +88,17 @@ def Gaia_DR2_Xmatch(df, dist=1, nearest=True):
 
         # Some DR2 columns end up messed up... fix them. The problem maybe due to NaNs in otherwise bool/string columns
         columns=['designation','datalink_url']
-        joined_df.loc[:,columns]=joined_df[columns].applymap(str)
+        for column in columns:
+            try:
+                joined_df.loc[:,column]=joined_df[column].applymap(str)
+            except KeyError:
+                pass # we didn't ask for these columns from Gaia
         columns=['astrometric_primary_flag','duplicated_source','phot_variable_flag']
-        joined_df.loc[:,columns]=joined_df[columns].applymap(bool)
+        for column in columns:
+            try:
+                joined_df.loc[:,column]=joined_df[column].applymap(bool)
+            except KeyError:
+                pass # we didn't ask for these columns from Gaia
 
         # reconstruct the int64 columns from the high and low 32bit parts
         for column in int64_columns.index:
@@ -98,6 +106,8 @@ def Gaia_DR2_Xmatch(df, dist=1, nearest=True):
                                   joined_df[f'{column}_low'].values.astype(np.int64)
             joined_df.drop([f'{column}_low'],1,inplace=True)
             joined_df.drop([f'{column}_high'],1,inplace=True)
+            
+        joined_df.drop(['xmatch_id'],1,inplace=True)
 
 
     return joined_df
