@@ -87,6 +87,17 @@ class NMagicParticles(object):
                     parameters[key] = val
             self.parameters = parameters
 
+    def writenmagicsnap(self,fname):
+        if self.phys:
+            self.toiu
+            wasphys = True
+        else:
+            wasphys = False
+        np.savetxt(fname, np.c_[self.pos[:, 0], self.pos[:, 1], self.pos[:, 2],
+                                self.v[:, 0], self.v[:, 1], self.v[:, 2], self.m, self.ptype],
+                   fmt=['%.6e', '%.6e', '%.6e', '%.6e', '%.6e', '%.6e', '%.6e', '%i'])
+        if wasphys:
+            self.tophys
 
     def asarray(self):
         """Returns the raw array data"""
