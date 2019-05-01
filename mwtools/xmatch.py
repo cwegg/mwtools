@@ -67,7 +67,7 @@ def Gaia_DR2_Xmatch(df, dist=1, nearest=True,gaia_columns='gaia.*'):
         xmatched_table.remove_columns(['ra', 'dec'])
         xmatched_table.rename_column('ra_2', 'ra_gaia')
         xmatched_table.rename_column('dec_2', 'dec_gaia')
-        xmatched_df = xmatched_table.filled().to_pandas()
+        xmatched_df = xmatched_table.to_pandas() 
 
         if xmatched_df.empty:
             raise ValueError('No crossmatches found')
@@ -84,19 +84,18 @@ def Gaia_DR2_Xmatch(df, dist=1, nearest=True,gaia_columns='gaia.*'):
         if nearest:
             # To select the nearest we group by the xmatch_id and select the nearest cross-match
             joined_df = joined_df.sort_values(['xmatch_id', 'dist'], ascending=True).groupby('xmatch_id').first().reset_index()
-        joined_df.drop(['xmatch_id'],1,inplace=True)
 
         # Some DR2 columns end up messed up... fix them. The problem maybe due to NaNs in otherwise bool/string columns
         columns=['designation','datalink_url']
         for column in columns:
             try:
-                joined_df.loc[:,column]=joined_df[column].applymap(str)
+                joined_df.loc[:,column]=joined_df[column].astype(str)
             except KeyError:
                 pass # we didn't ask for these columns from Gaia
         columns=['astrometric_primary_flag','duplicated_source','phot_variable_flag']
         for column in columns:
             try:
-                joined_df.loc[:,column]=joined_df[column].applymap(bool)
+                joined_df.loc[:,column]=joined_df[column].astype(bool)
             except KeyError:
                 pass # we didn't ask for these columns from Gaia
 
@@ -109,5 +108,7 @@ def Gaia_DR2_Xmatch(df, dist=1, nearest=True,gaia_columns='gaia.*'):
             
         joined_df.drop(['xmatch_id'],1,inplace=True)
 
+        from IPython.core.debugger import set_trace
+        set_trace()
 
     return joined_df
