@@ -300,7 +300,7 @@ def gravity_spherical_grid(particles, r, theta, phi, polar_forces=False, verbose
     If particles is a NMagicParticles instance in physical units then return in kpc,(km/s)**2 else
     return in internal units i.e. assuming G=1.
     """
-    r_v, theta_v, phi_v = np.meshgrid(r, theta, phi, indexing='ij')
+    phi_v, theta_v, r_v  = np.meshgrid(phi, theta, r, indexing='ij')
     x = r_v * np.sin(theta_v) * np.cos(phi_v)
     y = r_v * np.sin(theta_v) * np.sin(phi_v)
     z = r_v * np.cos(theta_v)
