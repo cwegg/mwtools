@@ -49,7 +49,7 @@ def Gaia_DR2_Xmatch(df, dist=1, nearest=True,gaia_columns='gaia.*'):
 
         # Construct cross-match query. Taken from the Gaia archive examples
         cross_match_query = """SELECT distance(POINT('ICRS', mystars.ra, mystars.dec), POINT('ICRS', gaia.ra, gaia.dec))
-            AS dist, mystars. *, """+gaia_columns+""" FROM tap_upload.table_test
+            AS gaia_xmatch_dist, mystars. *, """+gaia_columns+""" FROM tap_upload.table_test
             AS mystars, gaiadr2.gaia_source
             AS gaia WHERE 
             1 = CONTAINS(POINT('ICRS', mystars.ra, mystars.dec), CIRCLE('ICRS', gaia.ra, gaia.dec, {}))""".format(
@@ -67,7 +67,7 @@ def Gaia_DR2_Xmatch(df, dist=1, nearest=True,gaia_columns='gaia.*'):
         xmatched_table.remove_columns(['ra', 'dec'])
         xmatched_table.rename_column('ra_2', 'ra_gaia')
         xmatched_table.rename_column('dec_2', 'dec_gaia')
-        xmatched_df = xmatched_table.to_pandas() 
+        xmatched_df = xmatched_table.filled().to_pandas()
 
         if xmatched_df.empty:
             raise ValueError('No crossmatches found')
@@ -83,7 +83,7 @@ def Gaia_DR2_Xmatch(df, dist=1, nearest=True,gaia_columns='gaia.*'):
         joined_df = df.merge(xmatched_df,how='left',left_on=xmatch_id,right_on='xmatch_id',suffixes=('_orig',''))
         if nearest:
             # To select the nearest we group by the xmatch_id and select the nearest cross-match
-            joined_df = joined_df.sort_values(['xmatch_id', 'dist'], ascending=True).groupby('xmatch_id').first().reset_index()
+            joined_df = joined_df.sort_values(['xmatch_id', 'gaia_xmatch_dist'], ascending=True).groupby('xmatch_id').first().reset_index()
 
         # Some DR2 columns end up messed up... fix them. The problem maybe due to NaNs in otherwise bool/string columns
         columns=['designation','datalink_url']
@@ -108,7 +108,5 @@ def Gaia_DR2_Xmatch(df, dist=1, nearest=True,gaia_columns='gaia.*'):
             
         joined_df.drop(['xmatch_id'],1,inplace=True)
 
-        from IPython.core.debugger import set_trace
-        set_trace()
-
     return joined_df
+
