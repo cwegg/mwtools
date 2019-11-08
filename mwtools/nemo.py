@@ -256,7 +256,7 @@ def gravity_cartesian_grid(particles, x, y, z, polar_forces=False, verbose=False
     return in internal units i.e. assuming G=1.
     """
 
-    xmat, ymat, zmat = np.meshgrid(x, y, z)
+    xmat, ymat, zmat = np.meshgrid(x, y, z, indexing='ij')
     pos = np.zeros((len(xmat.flatten()), 3))
     pos[:, 0] = xmat.flatten()
     pos[:, 1] = ymat.flatten()
